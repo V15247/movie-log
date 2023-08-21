@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 var jsonParser = bodyParser.json();  
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs');
-const {validateRegister} = require('../validation/authValidate.js');
+const {validateRegister, validateLogin} = require('../validation/authValidate.js');
 
 
 
@@ -37,7 +37,22 @@ router.post('/register', jsonParser, async (req,res) => {
 
 router.post('/login', jsonParser, async(req,res) => {
 
-    
+
+    const {error} = validateLogin(req.body);
+    if (error) return res.status(400).send(error);
+
+    //Checks if email exists
+    const emailExist = await User.findOne({email: req.body.email});
+    if(!emailExist) return res.status(400).send('Email is not found in our database');
+
+    //Checks if inputted password matches hashed password
+    const validPass = await bcrypt.compare(req.body.password, user.password);
+    if (!validPass) return res.status(400).send("Invalid Password");
+
+     //Create and assign token
+     const token = jwt.sign({_id: user._id}, process.env.TOKEN_SECRET);
+     res.header('auth-token', token).send(token);
+ 
 })
 
 module.exports = router;
